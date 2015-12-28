@@ -380,5 +380,48 @@ Crafty.c("Particles", {
                 return vector1;
             }
         }
+    },
+    /**@
+     * #.pauseParticles
+     * @comp Particles
+     * @sign public this.pauseParticles()
+     *
+     * The pausePartiles will freeze these particles in execution.
+     *
+     * @example
+     * ~~~
+     * // start particle animation
+     * var ent = Crafty.e("Particles").particles(someParticleConfig);
+     *
+     * // and some time later, the gameplay is paused (or only
+     * // a part of it is frozen)
+     * ent.pauseParticles();
+     * ~~~
+     */
+    pauseParticles: function() {
+        this._particlesPaused = true;
+    },
+    /**@
+     * #.resumeParticles
+     * @comp Particles
+     * @sign public this.resumeParticles()
+     *
+     * The pausePartiles will freeze these particles in execution.
+     *
+     * @example
+     * ~~~
+     * // start particle animation
+     * var ent = Crafty.e("Particles").particles(someParticleConfig);
+     *
+     * // and some time later, the gameplay is paused (or only
+     * // a part of it is frozen)
+     * ent.pauseParticles();
+     *
+     * // and we resume the particles again
+     * ent.resumeParticles();
+     * ~~~
+     */
+    resumeParticles: function() {
+        this._particlesPaused = false;
     }
 });
