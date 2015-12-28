@@ -10,6 +10,7 @@ module.exports = {
     init: function () {
         this._delays = [];
         this.bind("EnterFrame", function (frameData) {
+            if (this._delaysPaused) return;
             var index = this._delays.length;
             while (--index >= 0) {
                 var item = this._delays[index];
@@ -117,5 +118,55 @@ module.exports = {
             }
         }
         return this;
+    },
+    /**@
+     * #.pauseDelays
+     * @comp Delay
+     * @sign public this.cancelDelays()
+     *
+     * The pauseDelays method will pause the delay until resumed.
+     *
+     * @example
+     * ~~~
+     * var doSomething = function(){
+     *   Crafty.log("doing something");
+     * };
+     *
+     * // execute doSomething each 100 miliseconds indefinetely
+     * var ent = Crafty.e("Delay").delay(doSomething, 100, -1);
+     *
+     * // and some time later, the gameplay is paused
+     * ent.pauseDelays();
+     * ~~~
+     */
+    pauseDelays: function() {
+        this._delaysPaused = true;
+    },
+    /**@
+     * #.resumeDelays
+     * @comp Delay
+     * @sign public this.resumeDelays()
+     *
+     * The resumeDelays method will resume earlier paused delays.
+     *
+     * @example
+     * ~~~
+     * var doSomething = function(){
+     *   Crafty.log("doing something");
+     * };
+     *
+     * // execute doSomething each 100 miliseconds indefinetely
+     * var ent = Crafty.e("Delay").delay(doSomething, 100, -1);
+     *
+     * // and some time later, the gameplay is paused (or only
+     * // a part of it is frozen)
+     * ent.pauseDelays();
+     *
+     * // the player resumes gameplay
+     * ent.resumeDelays();
+     * ~~~
+     */
+    resumeDelays: function() {
+        this._delaysPaused = false;
     }
 };
