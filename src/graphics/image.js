@@ -13,6 +13,33 @@ var IMAGE_ATTRIBUTE_LIST = [
     {name:"aTextureCoord",  width: 2}
 ];
 
+Crafty.extend({
+    defaultImageShader: function(shader) {
+        if (arguments.length === 0 ){
+            if (this._defaultImageShader === undefined) {
+              this._defaultImageShader = new Crafty.WebGLShader(
+                IMAGE_VERTEX_SHADER,
+                IMAGE_FRAGMENT_SHADER,
+                IMAGE_ATTRIBUTE_LIST,
+                function(e) {
+                    var pos = e.pos;
+                    // Write texture coordinates
+                    e.program.writeVector("aTextureCoord",
+                        0, 0,
+                        0, pos._h,
+                        pos._w, 0,
+                        pos._w, pos._h
+                    );
+                }
+              );
+
+            }
+            return this._defaultImageShader;
+        }
+        this._defaultImageShader = shader;
+    }
+});
+
 /**@
  * #Image
  * @category Graphics
@@ -92,7 +119,7 @@ Crafty.c("Image", {
         if (this.has("Canvas")) {
             this._pattern = this._drawContext.createPattern(this.img, this._repeat);
         } else if (this.has("WebGL")) {
-            this._establishShader("image:" + this.__image, IMAGE_FRAGMENT_SHADER, IMAGE_VERTEX_SHADER, IMAGE_ATTRIBUTE_LIST);
+            this._establishShader("image:" + this.__image, Crafty.defaultImageShader());
             this.program.setTexture( this.webgl.makeTexture(this.__image, this.img, (this._repeat!=="no-repeat")));
         }
 
@@ -126,14 +153,7 @@ Crafty.c("Image", {
               e.style.backgroundRepeat = this._repeat;
             }
         } else if (e.type === "webgl") {
-            var pos = e.pos;
-            // Write texture coordinates
-            e.program.writeVector("aTextureCoord",
-                0, 0,
-                0, pos._h,
-                pos._w, 0,
-                pos._w, pos._h
-            );
+          e.program.draw(e, this);
         }
 
     }

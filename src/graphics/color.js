@@ -144,7 +144,30 @@ var COLOR_ATTRIBUTE_LIST = [
     {name:"aColor",  width: 4}
 ];
 
+Crafty.extend({
+    defaultColorShader: function(shader) {
+        if (arguments.length === 0 ){
+            if (this._defaultColorShader === undefined) {
+              this._defaultColorShader = new Crafty.WebGLShader(
+                COLOR_VERTEX_SHADER,
+                COLOR_FRAGMENT_SHADER,
+                COLOR_ATTRIBUTE_LIST,
+                function(e, entity) {
+                    e.program.writeVector("aColor",
+                        entity._red/255,
+                        entity._green/255,
+                        entity._blue/255,
+                        entity._strength
+                    );
+                }
+              );
 
+            }
+            return this._defaultColorShader;
+        }
+        this._defaultColorShader = shader;
+    }
+});
 
 /**@
  * #Color
@@ -162,7 +185,7 @@ Crafty.c("Color", {
     init: function () {
         this.bind("Draw", this._drawColor);
         if (this.has("WebGL")){
-            this._establishShader("Color", COLOR_FRAGMENT_SHADER, COLOR_VERTEX_SHADER, COLOR_ATTRIBUTE_LIST);
+            this._establishShader("Color", Crafty.defaultColorShader());
         }
         this.trigger("Invalidate");
     },
@@ -185,12 +208,7 @@ Crafty.c("Color", {
             e.ctx.fillStyle = this._color;
             e.ctx.fillRect(e.pos._x, e.pos._y, e.pos._w, e.pos._h);
         } else if (e.type === "webgl"){
-            e.program.writeVector("aColor",
-                this._red/255,
-                this._green/255,
-                this._blue/255,
-                this._strength
-            );
+            e.program.draw(e, this);
         }
     },
 
