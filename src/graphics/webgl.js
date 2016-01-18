@@ -22,11 +22,20 @@ var Crafty = require('../core/core.js');
  *~~~
  */
 
+Crafty.extend({
+  WebGLShader: function(vertexCode, fragmentCode, attributeList, drawCallback){
+      this.vertexCode = vertexCode;
+      this.fragmentCode = fragmentCode;
+      this.attributeList = attributeList;
+      this.drawCallback = drawCallback;
+  }
+});
+
 Crafty.c("WebGL", {
     /**@
      * #.context
      * @comp WebGL
-     * 
+     *
      * The webgl context this entity will be rendered to.
      */
     init: function () {
@@ -150,14 +159,14 @@ Crafty.c("WebGL", {
 
         // Register the vertex groups to be drawn, referring to this entities position in the big buffer
         prog.addIndices(prog.ent_offset);
-        
+
         return this;
     },
 
     // v_src is optional, there's a default vertex shader that works for regular rectangular entities
-    _establishShader: function(compName, f_src, v_src, attributes){
-        this.program = this.webgl.getProgramWrapper(compName, f_src, v_src, attributes);
-        
+    _establishShader: function(compName, shader){
+        this.program = this.webgl.getProgramWrapper(compName, shader);
+
         // Needs to know where in the big array we are!
         this.program.registerEntity(this);
         // Shader program means ready

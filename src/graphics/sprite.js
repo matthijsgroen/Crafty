@@ -13,6 +13,30 @@ var SPRITE_ATTRIBUTE_LIST = [
 ];
 
 Crafty.extend({
+    defaultSpriteShader: function(shader) {
+        if (arguments.length === 0 ){
+            if (this._defaultSpriteShader === undefined) {
+              this._defaultSpriteShader = new Crafty.WebGLShader(
+                SPRITE_VERTEX_SHADER,
+                SPRITE_FRAGMENT_SHADER,
+                SPRITE_ATTRIBUTE_LIST,
+                function(e) {
+                    var co = e.co;
+                    // Write texture coordinates
+                    e.program.writeVector("aTextureCoord",
+                        co.x, co.y,
+                        co.x, co.y + co.h,
+                        co.x + co.w, co.y,
+                        co.x + co.w, co.y + co.h
+                    );
+                }
+              );
+
+            }
+            return this._defaultSpriteShader;
+        }
+        this._defaultSpriteShader = shader;
+    },
 
     /**@
      * #Crafty.sprite
@@ -134,7 +158,7 @@ Crafty.extend({
             this.h = this.__coord[3];
 
             if (this.has("WebGL")){
-                this._establishShader(this.__image, SPRITE_FRAGMENT_SHADER, SPRITE_VERTEX_SHADER, SPRITE_ATTRIBUTE_LIST);
+                this._establishShader(this.__image, Crafty.defaultSpriteShader());
                 this.program.setTexture( this.webgl.makeTexture(this.__image, this.img, false) );
             }
         };
@@ -240,12 +264,7 @@ Crafty.c("Sprite", {
             }
         } else if (e.type === "webgl") {
             // Write texture coordinates
-            e.program.writeVector("aTextureCoord",
-                co.x, co.y,
-                co.x, co.y + co.h,
-                co.x + co.w, co.y,
-                co.x + co.w, co.y + co.h
-            );
+            e.program.draw(e, this);
         }
     },
 
