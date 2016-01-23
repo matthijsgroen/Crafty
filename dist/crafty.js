@@ -6787,7 +6787,7 @@ var Crafty = require('../core/core.js'),
  */
 Crafty.extend({
     assignColor: (function(){
-        
+
         // Create phantom element to assess color
         var element = document.createElement("div");
         element.style.display = "none";
@@ -6849,7 +6849,7 @@ Crafty.extend({
         function parseRgbString(rgb, c) {
             var values = rgb_regex.exec(rgb);
             if( values===null || (values.length != 4 && values.length != 5)) {
-                return default_value(c); // return bad result?         
+                return default_value(c); // return bad result?
             }
             c._red = Math.round(parseFloat(values[1]));
             c._green = Math.round(parseFloat(values[2]));
@@ -6915,30 +6915,19 @@ var COLOR_ATTRIBUTE_LIST = [
     {name:"aColor",  width: 4}
 ];
 
-Crafty.extend({
-    defaultColorShader: function(shader) {
-        if (arguments.length === 0 ){
-            if (this._defaultColorShader === undefined) {
-              this._defaultColorShader = new Crafty.WebGLShader(
-                COLOR_VERTEX_SHADER,
-                COLOR_FRAGMENT_SHADER,
-                COLOR_ATTRIBUTE_LIST,
-                function(e, entity) {
-                    e.program.writeVector("aColor",
-                        entity._red/255,
-                        entity._green/255,
-                        entity._blue/255,
-                        entity._strength
-                    );
-                }
-              );
-
-            }
-            return this._defaultColorShader;
-        }
-        this._defaultColorShader = shader;
+Crafty.defaultShader('Color', new Crafty.WebGLShader(
+    COLOR_VERTEX_SHADER,
+    COLOR_FRAGMENT_SHADER,
+    COLOR_ATTRIBUTE_LIST,
+    function(e, entity) {
+        e.program.writeVector("aColor",
+            entity._red/255,
+            entity._green/255,
+            entity._blue/255,
+            entity._strength
+        );
     }
-});
+));
 
 /**@
  * #Color
@@ -6956,7 +6945,7 @@ Crafty.c("Color", {
     init: function () {
         this.bind("Draw", this._drawColor);
         if (this.has("WebGL")){
-            this._establishShader("Color", Crafty.defaultColorShader());
+            this._establishShader("Color", Crafty.defaultShader('Color'));
         }
         this.trigger("Invalidate");
     },
@@ -6997,7 +6986,7 @@ Crafty.c("Color", {
      * @param r - value for the red channel
      * @param g - value for the green channel
      * @param b - value for the blue channel
-     * @param strength - the opacity of the rectangle 
+     * @param strength - the opacity of the rectangle
      *
      * @sign public String .color()
      * @return A string representing the current color as a CSS property.
@@ -9245,7 +9234,7 @@ Crafty.extend({
             this.__padding = [paddingX, paddingY];
             this.__padBorder = paddingAroundBorder;
             this.sprite(this.__coord[0], this.__coord[1], this.__coord[2], this.__coord[3]);
-            
+
             this.img = img;
             //draw now
             if (this.img.complete && this.img.width > 0) {
@@ -9286,7 +9275,7 @@ Crafty.extend({
  * @category Graphics
  * @trigger Invalidate - when the sprites change
  *
- * A component for using tiles in a sprite map.  
+ * A component for using tiles in a sprite map.
  *
  * This is automatically added to entities which use the components created by `Crafty.sprite` or `Crafty.load`.
  * Since these are also used to define tile size, you'll rarely need to use this components methods directly.
@@ -9353,7 +9342,7 @@ Crafty.c("Sprite", {
 
             // Don't change background if it's not necessary -- this can cause some browsers to reload the image
             // See [this chrome issue](https://code.google.com/p/chromium/issues/detail?id=102706)
-            var newBackground = bgColor + " url('" + this.__image + "') no-repeat"; 
+            var newBackground = bgColor + " url('" + this.__image + "') no-repeat";
             if (newBackground !== style.background) {
                 style.background = newBackground;
             }
@@ -10790,14 +10779,14 @@ Crafty.webglLayerObject = {
         this._canvas = c;
 
         gl.clearColor(0.0, 0.0, 0.0, 0.0);
-        
+
         // These commands allow partial transparency, but require drawing in z-order
         gl.disable(gl.DEPTH_TEST);
         // This particular blend function requires the shader programs to output pre-multiplied alpha
         // This is necessary to match the blending of canvas/dom entities against the background color
         gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
         gl.enable(gl.BLEND);
-        
+
 
         //Bind rendering of canvas context (see drawing.js)
         this.uniqueBind("RenderScene", this.render);
@@ -10908,10 +10897,11 @@ Crafty.webglLayerObject = {
         if (shaderProgram !== null){
           shaderProgram.renderBatch();
         }
-        
+
     }
 
 };
+
 },{"../core/core.js":7}],37:[function(require,module,exports){
 var Crafty = require('../core/core.js');
 
@@ -10924,7 +10914,7 @@ var Crafty = require('../core/core.js');
  * When this component is added to an entity it will be drawn to the global webgl canvas element. Its canvas element (and hence any WebGL entity) is always rendered below any DOM entities.
  *
  * Sprite, Image, SpriteAnimation, and Color all support WebGL rendering.  Text entities will need to use DOM or Canvas for now.
- * 
+ *
  * If a webgl context does not yet exist, a WebGL entity will automatically create one.
  *
  * @note For better performance, minimize the number of spritesheets used, and try to arrange it so that entities with different spritesheets are on different z-levels.  This is because entities are rendered in z order, and only entities sharing the same texture can be efficiently batched.
@@ -10938,12 +10928,20 @@ var Crafty = require('../core/core.js');
  */
 
 Crafty.extend({
-  WebGLShader: function(vertexCode, fragmentCode, attributeList, drawCallback){
-      this.vertexCode = vertexCode;
-      this.fragmentCode = fragmentCode;
-      this.attributeList = attributeList;
-      this.drawCallback = drawCallback;
-  }
+    WebGLShader: function(vertexCode, fragmentCode, attributeList, drawCallback){
+        this.vertexCode = vertexCode;
+        this.fragmentCode = fragmentCode;
+        this.attributeList = attributeList;
+        this.drawCallback = drawCallback;
+    },
+    defaultShader: function(component, shader) {
+        this._defaultShaders = (this._defaultShaders || {});
+        if (arguments.length === 0 ){
+            return this._defaultShaders[component];
+        }
+        this._defaultShaders[component] = shader;
+    },
+
 });
 
 Crafty.c("WebGL", {
@@ -11056,7 +11054,7 @@ Crafty.c("WebGL", {
             this._x + this._w, this._y + this._h
         );
 
-        // Write orientation 
+        // Write orientation
         prog.writeVector("aOrientation",
             this._origin.x + this._x,
             this._origin.y + this._y,
