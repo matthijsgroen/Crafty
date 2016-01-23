@@ -10914,7 +10914,7 @@ var Crafty = require('../core/core.js');
  * When this component is added to an entity it will be drawn to the global webgl canvas element. Its canvas element (and hence any WebGL entity) is always rendered below any DOM entities.
  *
  * Sprite, Image, SpriteAnimation, and Color all support WebGL rendering.  Text entities will need to use DOM or Canvas for now.
- * 
+ *
  * If a webgl context does not yet exist, a WebGL entity will automatically create one.
  *
  * @note For better performance, minimize the number of spritesheets used, and try to arrange it so that entities with different spritesheets are on different z-levels.  This is because entities are rendered in z order, and only entities sharing the same texture can be efficiently batched.
@@ -10936,7 +10936,7 @@ Crafty.extend({
     },
     defaultShader: function(component, shader) {
         this._defaultShaders = (this._defaultShaders || {});
-        if (arguments.length === 0 ){
+        if (arguments.length === 1 ){
             return this._defaultShaders[component];
         }
         this._defaultShaders[component] = shader;
@@ -11054,7 +11054,7 @@ Crafty.c("WebGL", {
             this._x + this._w, this._y + this._h
         );
 
-        // Write orientation 
+        // Write orientation
         prog.writeVector("aOrientation",
             this._origin.x + this._x,
             this._origin.y + this._y,
