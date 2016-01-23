@@ -6788,7 +6788,7 @@ var Crafty = require('../core/core.js'),
  */
 Crafty.extend({
     assignColor: (function(){
-        
+
         // Create phantom element to assess color
         var element = document.createElement("div");
         element.style.display = "none";
@@ -6850,7 +6850,7 @@ Crafty.extend({
         function parseRgbString(rgb, c) {
             var values = rgb_regex.exec(rgb);
             if( values===null || (values.length != 4 && values.length != 5)) {
-                return default_value(c); // return bad result?         
+                return default_value(c); // return bad result?
             }
             c._red = Math.round(parseFloat(values[1]));
             c._green = Math.round(parseFloat(values[2]));
@@ -6907,20 +6907,17 @@ Crafty.extend({
 
 // Define some variables required for webgl
 
-var COLOR_VERTEX_SHADER = "attribute vec2 aPosition;\nattribute vec3 aOrientation;\nattribute vec2 aLayer;\nattribute vec4 aColor;\n\nvarying lowp vec4 vColor;\n\nuniform  vec4 uViewport;\n\nmat4 viewportScale = mat4(2.0 / uViewport.z, 0, 0, 0,    0, -2.0 / uViewport.w, 0,0,    0, 0,1,0,    -1,+1,0,1);\nvec4 viewportTranslation = vec4(uViewport.xy, 0, 0);\n\nvoid main() {\n  vec2 pos = aPosition;\n  vec2 entityOrigin = aOrientation.xy;\n  mat2 entityRotationMatrix = mat2(cos(aOrientation.z), sin(aOrientation.z), -sin(aOrientation.z), cos(aOrientation.z));\n\n  pos = entityRotationMatrix * (pos - entityOrigin) + entityOrigin;\n  gl_Position = viewportScale * (viewportTranslation + vec4(pos, 1.0/(1.0+exp(aLayer.x) ), 1) );\n  vColor = vec4(aColor.rgb*aColor.a*aLayer.y, aColor.a*aLayer.y);\n}";
-var COLOR_FRAGMENT_SHADER = "precision mediump float;\nvarying lowp vec4 vColor;\nvoid main(void) {\n\tgl_FragColor = vColor;\n}";
-var COLOR_ATTRIBUTE_LIST = [
-    {name:"aPosition", width: 2},
-    {name:"aOrientation", width: 3},
-    {name:"aLayer", width:2},
-    {name:"aColor",  width: 4}
-];
 
-Crafty.defaultShader('Color', new Crafty.WebGLShader(
-    COLOR_VERTEX_SHADER,
-    COLOR_FRAGMENT_SHADER,
-    COLOR_ATTRIBUTE_LIST,
-    function(e, entity) {
+Crafty.defaultShader("Color", new Crafty.WebGLShader(
+    "attribute vec2 aPosition;\nattribute vec3 aOrientation;\nattribute vec2 aLayer;\nattribute vec4 aColor;\n\nvarying lowp vec4 vColor;\n\nuniform  vec4 uViewport;\n\nmat4 viewportScale = mat4(2.0 / uViewport.z, 0, 0, 0,    0, -2.0 / uViewport.w, 0,0,    0, 0,1,0,    -1,+1,0,1);\nvec4 viewportTranslation = vec4(uViewport.xy, 0, 0);\n\nvoid main() {\n  vec2 pos = aPosition;\n  vec2 entityOrigin = aOrientation.xy;\n  mat2 entityRotationMatrix = mat2(cos(aOrientation.z), sin(aOrientation.z), -sin(aOrientation.z), cos(aOrientation.z));\n\n  pos = entityRotationMatrix * (pos - entityOrigin) + entityOrigin;\n  gl_Position = viewportScale * (viewportTranslation + vec4(pos, 1.0/(1.0+exp(aLayer.x) ), 1) );\n  vColor = vec4(aColor.rgb*aColor.a*aLayer.y, aColor.a*aLayer.y);\n}",
+    "precision mediump float;\nvarying lowp vec4 vColor;\nvoid main(void) {\n\tgl_FragColor = vColor;\n}",
+    [
+        { name: "aPosition",    width: 2 },
+        { name: "aOrientation", width: 3 },
+        { name: "aLayer",       width: 2 },
+        { name: "aColor",       width: 4 }
+    ],
+    function(e, _entity) {
         e.program.writeVector("aColor",
             entity._red/255,
             entity._green/255,
@@ -6946,7 +6943,7 @@ Crafty.c("Color", {
     init: function () {
         this.bind("Draw", this._drawColor);
         if (this.has("WebGL")){
-            this._establishShader("Color", Crafty.defaultShader('Color'));
+            this._establishShader("Color", Crafty.defaultShader("Color"));
         }
         this.trigger("Invalidate");
     },
@@ -6987,7 +6984,7 @@ Crafty.c("Color", {
      * @param r - value for the red channel
      * @param g - value for the green channel
      * @param b - value for the blue channel
-     * @param strength - the opacity of the rectangle 
+     * @param strength - the opacity of the rectangle
      *
      * @sign public String .color()
      * @return A string representing the current color as a CSS property.
@@ -7894,41 +7891,27 @@ var Crafty = require('../core/core.js');
 //
 // Define some variables required for webgl
 
-var IMAGE_VERTEX_SHADER = "attribute vec2 aPosition;\nattribute vec3 aOrientation;\nattribute vec2 aLayer;\nattribute vec2 aTextureCoord;\n\nvarying mediump vec3 vTextureCoord;\n\nuniform vec4 uViewport;\nuniform mediump vec2 uTextureDimensions;\n\nmat4 viewportScale = mat4(2.0 / uViewport.z, 0, 0, 0,    0, -2.0 / uViewport.w, 0,0,    0, 0,1,0,    -1,+1,0,1);\nvec4 viewportTranslation = vec4(uViewport.xy, 0, 0);\n\nvoid main() {\n  vec2 pos = aPosition;\n  vec2 entityOrigin = aOrientation.xy;\n  mat2 entityRotationMatrix = mat2(cos(aOrientation.z), sin(aOrientation.z), -sin(aOrientation.z), cos(aOrientation.z));\n  \n  pos = entityRotationMatrix * (pos - entityOrigin) + entityOrigin ;\n  gl_Position = viewportScale * (viewportTranslation + vec4(pos, 1.0/(1.0+exp(aLayer.x) ), 1) );\n  vTextureCoord = vec3(aTextureCoord, aLayer.y);\n}";
-var IMAGE_FRAGMENT_SHADER = "varying mediump vec3 vTextureCoord;\n  \nuniform sampler2D uSampler;\nuniform mediump vec2 uTextureDimensions;\n\nvoid main(void) {\n  highp vec2 coord =   vTextureCoord.xy / uTextureDimensions;\n  mediump vec4 base_color = texture2D(uSampler, coord);\n  gl_FragColor = vec4(base_color.rgb*base_color.a*vTextureCoord.z, base_color.a*vTextureCoord.z);\n}";
-var IMAGE_ATTRIBUTE_LIST = [
-    {name:"aPosition", width: 2},
-    {name:"aOrientation", width: 3},
-    {name:"aLayer", width:2},
-    {name:"aTextureCoord",  width: 2}
-];
 
-Crafty.extend({
-    defaultImageShader: function(shader) {
-        if (arguments.length === 0 ){
-            if (this._defaultImageShader === undefined) {
-              this._defaultImageShader = new Crafty.WebGLShader(
-                IMAGE_VERTEX_SHADER,
-                IMAGE_FRAGMENT_SHADER,
-                IMAGE_ATTRIBUTE_LIST,
-                function(e) {
-                    var pos = e.pos;
-                    // Write texture coordinates
-                    e.program.writeVector("aTextureCoord",
-                        0, 0,
-                        0, pos._h,
-                        pos._w, 0,
-                        pos._w, pos._h
-                    );
-                }
-              );
-
-            }
-            return this._defaultImageShader;
-        }
-        this._defaultImageShader = shader;
+Crafty.defaultShader("Image", new Crafty.WebGLShader(
+    "attribute vec2 aPosition;\nattribute vec3 aOrientation;\nattribute vec2 aLayer;\nattribute vec2 aTextureCoord;\n\nvarying mediump vec3 vTextureCoord;\n\nuniform vec4 uViewport;\nuniform mediump vec2 uTextureDimensions;\n\nmat4 viewportScale = mat4(2.0 / uViewport.z, 0, 0, 0,    0, -2.0 / uViewport.w, 0,0,    0, 0,1,0,    -1,+1,0,1);\nvec4 viewportTranslation = vec4(uViewport.xy, 0, 0);\n\nvoid main() {\n  vec2 pos = aPosition;\n  vec2 entityOrigin = aOrientation.xy;\n  mat2 entityRotationMatrix = mat2(cos(aOrientation.z), sin(aOrientation.z), -sin(aOrientation.z), cos(aOrientation.z));\n  \n  pos = entityRotationMatrix * (pos - entityOrigin) + entityOrigin ;\n  gl_Position = viewportScale * (viewportTranslation + vec4(pos, 1.0/(1.0+exp(aLayer.x) ), 1) );\n  vTextureCoord = vec3(aTextureCoord, aLayer.y);\n}",
+    "varying mediump vec3 vTextureCoord;\n  \nuniform sampler2D uSampler;\nuniform mediump vec2 uTextureDimensions;\n\nvoid main(void) {\n  highp vec2 coord =   vTextureCoord.xy / uTextureDimensions;\n  mediump vec4 base_color = texture2D(uSampler, coord);\n  gl_FragColor = vec4(base_color.rgb*base_color.a*vTextureCoord.z, base_color.a*vTextureCoord.z);\n}",
+    [
+        { name: "aPosition",     width: 2 },
+        { name: "aOrientation",  width: 3 },
+        { name: "aLayer",        width: 2 },
+        { name: "aTextureCoord", width: 2 }
+    ],
+    function(e, _entity) {
+        var pos = e.pos;
+        // Write texture coordinates
+        e.program.writeVector("aTextureCoord",
+            0, 0,
+            0, pos._h,
+            pos._w, 0,
+            pos._w, pos._h
+        );
     }
-});
+));
 
 /**@
  * #Image
@@ -8009,7 +7992,7 @@ Crafty.c("Image", {
         if (this.has("Canvas")) {
             this._pattern = this._drawContext.createPattern(this.img, this._repeat);
         } else if (this.has("WebGL")) {
-            this._establishShader("image:" + this.__image, Crafty.defaultImageShader());
+            this._establishShader("image:" + this.__image, Crafty.defaultShader("Image"));
             this.program.setTexture( this.webgl.makeTexture(this.__image, this.img, (this._repeat!=="no-repeat")));
         }
 
@@ -9090,44 +9073,31 @@ Crafty.c("SpriteAnimation", {
 },{"../core/core.js":7}],33:[function(require,module,exports){
 var Crafty = require('../core/core.js');
 
-
 // Define some variables required for webgl
 
-var SPRITE_VERTEX_SHADER = "attribute vec2 aPosition;\nattribute vec3 aOrientation;\nattribute vec2 aLayer;\nattribute vec2 aTextureCoord;\n\nvarying mediump vec3 vTextureCoord;\n\nuniform vec4 uViewport;\nuniform mediump vec2 uTextureDimensions;\n\nmat4 viewportScale = mat4(2.0 / uViewport.z, 0, 0, 0,    0, -2.0 / uViewport.w, 0,0,    0, 0,1,0,    -1,+1,0,1);\nvec4 viewportTranslation = vec4(uViewport.xy, 0, 0);\n\nvoid main() {\n  vec2 pos = aPosition;\n  vec2 entityOrigin = aOrientation.xy;\n  mat2 entityRotationMatrix = mat2(cos(aOrientation.z), sin(aOrientation.z), -sin(aOrientation.z), cos(aOrientation.z));\n  \n  pos = entityRotationMatrix * (pos - entityOrigin) + entityOrigin ;\n  gl_Position = viewportScale * (viewportTranslation + vec4(pos, 1.0/(1.0+exp(aLayer.x) ), 1) );\n  vTextureCoord = vec3(aTextureCoord, aLayer.y);\n}";
-var SPRITE_FRAGMENT_SHADER = "varying mediump vec3 vTextureCoord;\n  \nuniform sampler2D uSampler;\nuniform mediump vec2 uTextureDimensions;\n\nvoid main(void) {\n  highp vec2 coord =   vTextureCoord.xy / uTextureDimensions;\n  mediump vec4 base_color = texture2D(uSampler, coord);\n  gl_FragColor = vec4(base_color.rgb*base_color.a*vTextureCoord.z, base_color.a*vTextureCoord.z);\n}";
-var SPRITE_ATTRIBUTE_LIST = [
-    {name:"aPosition", width: 2},
-    {name:"aOrientation", width: 3},
-    {name:"aLayer", width:2},
-    {name:"aTextureCoord",  width: 2}
-];
+
+Crafty.defaultShader("Sprite", new Crafty.WebGLShader(
+    "attribute vec2 aPosition;\nattribute vec3 aOrientation;\nattribute vec2 aLayer;\nattribute vec2 aTextureCoord;\n\nvarying mediump vec3 vTextureCoord;\n\nuniform vec4 uViewport;\nuniform mediump vec2 uTextureDimensions;\n\nmat4 viewportScale = mat4(2.0 / uViewport.z, 0, 0, 0,    0, -2.0 / uViewport.w, 0,0,    0, 0,1,0,    -1,+1,0,1);\nvec4 viewportTranslation = vec4(uViewport.xy, 0, 0);\n\nvoid main() {\n  vec2 pos = aPosition;\n  vec2 entityOrigin = aOrientation.xy;\n  mat2 entityRotationMatrix = mat2(cos(aOrientation.z), sin(aOrientation.z), -sin(aOrientation.z), cos(aOrientation.z));\n  \n  pos = entityRotationMatrix * (pos - entityOrigin) + entityOrigin ;\n  gl_Position = viewportScale * (viewportTranslation + vec4(pos, 1.0/(1.0+exp(aLayer.x) ), 1) );\n  vTextureCoord = vec3(aTextureCoord, aLayer.y);\n}",
+    "varying mediump vec3 vTextureCoord;\n  \nuniform sampler2D uSampler;\nuniform mediump vec2 uTextureDimensions;\n\nvoid main(void) {\n  highp vec2 coord =   vTextureCoord.xy / uTextureDimensions;\n  mediump vec4 base_color = texture2D(uSampler, coord);\n  gl_FragColor = vec4(base_color.rgb*base_color.a*vTextureCoord.z, base_color.a*vTextureCoord.z);\n}",
+    [
+        { name: "aPosition",     width: 2 },
+        { name: "aOrientation",  width: 3 },
+        { name: "aLayer",        width: 2 },
+        { name: "aTextureCoord", width: 2 }
+    ],
+    function(e, _entity) {
+        var co = e.co;
+        // Write texture coordinates
+        e.program.writeVector("aTextureCoord",
+            co.x, co.y,
+            co.x, co.y + co.h,
+            co.x + co.w, co.y,
+            co.x + co.w, co.y + co.h
+        );
+    }
+));
 
 Crafty.extend({
-    defaultSpriteShader: function(shader) {
-        if (arguments.length === 0 ){
-            if (this._defaultSpriteShader === undefined) {
-              this._defaultSpriteShader = new Crafty.WebGLShader(
-                SPRITE_VERTEX_SHADER,
-                SPRITE_FRAGMENT_SHADER,
-                SPRITE_ATTRIBUTE_LIST,
-                function(e) {
-                    var co = e.co;
-                    // Write texture coordinates
-                    e.program.writeVector("aTextureCoord",
-                        co.x, co.y,
-                        co.x, co.y + co.h,
-                        co.x + co.w, co.y,
-                        co.x + co.w, co.y + co.h
-                    );
-                }
-              );
-
-            }
-            return this._defaultSpriteShader;
-        }
-        this._defaultSpriteShader = shader;
-    },
-
     /**@
      * #Crafty.sprite
      * @category Graphics
@@ -9235,7 +9205,7 @@ Crafty.extend({
             this.__padding = [paddingX, paddingY];
             this.__padBorder = paddingAroundBorder;
             this.sprite(this.__coord[0], this.__coord[1], this.__coord[2], this.__coord[3]);
-            
+
             this.img = img;
             //draw now
             if (this.img.complete && this.img.width > 0) {
@@ -9248,7 +9218,7 @@ Crafty.extend({
             this.h = this.__coord[3];
 
             if (this.has("WebGL")){
-                this._establishShader(this.__image, Crafty.defaultSpriteShader());
+                this._establishShader(this.__image, Crafty.defaultShader("Sprite"));
                 this.program.setTexture( this.webgl.makeTexture(this.__image, this.img, false) );
             }
         };
@@ -9276,7 +9246,7 @@ Crafty.extend({
  * @category Graphics
  * @trigger Invalidate - when the sprites change
  *
- * A component for using tiles in a sprite map.  
+ * A component for using tiles in a sprite map.
  *
  * This is automatically added to entities which use the components created by `Crafty.sprite` or `Crafty.load`.
  * Since these are also used to define tile size, you'll rarely need to use this components methods directly.
@@ -9343,7 +9313,7 @@ Crafty.c("Sprite", {
 
             // Don't change background if it's not necessary -- this can cause some browsers to reload the image
             // See [this chrome issue](https://code.google.com/p/chromium/issues/detail?id=102706)
-            var newBackground = bgColor + " url('" + this.__image + "') no-repeat"; 
+            var newBackground = bgColor + " url('" + this.__image + "') no-repeat";
             if (newBackground !== style.background) {
                 style.background = newBackground;
             }
