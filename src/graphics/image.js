@@ -4,14 +4,27 @@ var Crafty = require('../core/core.js');
 //
 // Define some variables required for webgl
 var fs = require('fs');
-var IMAGE_VERTEX_SHADER = fs.readFileSync(__dirname + '/shaders/sprite.vert', 'utf8');
-var IMAGE_FRAGMENT_SHADER = fs.readFileSync(__dirname + '/shaders/sprite.frag', 'utf8');
-var IMAGE_ATTRIBUTE_LIST = [
-    {name:"aPosition", width: 2},
-    {name:"aOrientation", width: 3},
-    {name:"aLayer", width:2},
-    {name:"aTextureCoord",  width: 2}
-];
+
+Crafty.defaultShader("Image", new Crafty.WebGLShader(
+    fs.readFileSync(__dirname + '/shaders/sprite.vert', 'utf8'),
+    fs.readFileSync(__dirname + '/shaders/sprite.frag', 'utf8'),
+    [
+        { name: "aPosition",     width: 2 },
+        { name: "aOrientation",  width: 3 },
+        { name: "aLayer",        width: 2 },
+        { name: "aTextureCoord", width: 2 }
+    ],
+    function(e, _entity) {
+        var pos = e.pos;
+        // Write texture coordinates
+        e.program.writeVector("aTextureCoord",
+            0, 0,
+            0, pos._h,
+            pos._w, 0,
+            pos._w, pos._h
+        );
+    }
+));
 
 Crafty.extend({
     defaultImageShader: function(shader) {
@@ -119,7 +132,7 @@ Crafty.c("Image", {
         if (this.has("Canvas")) {
             this._pattern = this._drawContext.createPattern(this.img, this._repeat);
         } else if (this.has("WebGL")) {
-            this._establishShader("image:" + this.__image, Crafty.defaultImageShader());
+            this._establishShader("image:" + this.__image, Crafty.defaultShader("Image"));
             this.program.setTexture( this.webgl.makeTexture(this.__image, this.img, (this._repeat!=="no-repeat")));
         }
 
