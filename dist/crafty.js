@@ -6907,7 +6907,6 @@ Crafty.extend({
 
 // Define some variables required for webgl
 
-
 Crafty.defaultShader("Color", new Crafty.WebGLShader(
     "attribute vec2 aPosition;\nattribute vec3 aOrientation;\nattribute vec2 aLayer;\nattribute vec4 aColor;\n\nvarying lowp vec4 vColor;\n\nuniform  vec4 uViewport;\n\nmat4 viewportScale = mat4(2.0 / uViewport.z, 0, 0, 0,    0, -2.0 / uViewport.w, 0,0,    0, 0,1,0,    -1,+1,0,1);\nvec4 viewportTranslation = vec4(uViewport.xy, 0, 0);\n\nvoid main() {\n  vec2 pos = aPosition;\n  vec2 entityOrigin = aOrientation.xy;\n  mat2 entityRotationMatrix = mat2(cos(aOrientation.z), sin(aOrientation.z), -sin(aOrientation.z), cos(aOrientation.z));\n\n  pos = entityRotationMatrix * (pos - entityOrigin) + entityOrigin;\n  gl_Position = viewportScale * (viewportTranslation + vec4(pos, 1.0/(1.0+exp(aLayer.x) ), 1) );\n  vColor = vec4(aColor.rgb*aColor.a*aLayer.y, aColor.a*aLayer.y);\n}",
     "precision mediump float;\nvarying lowp vec4 vColor;\nvoid main(void) {\n\tgl_FragColor = vColor;\n}",
@@ -6917,7 +6916,7 @@ Crafty.defaultShader("Color", new Crafty.WebGLShader(
         { name: "aLayer",       width: 2 },
         { name: "aColor",       width: 4 }
     ],
-    function(e, _entity) {
+    function(e, entity) {
         e.program.writeVector("aColor",
             entity._red/255,
             entity._green/255,
@@ -7912,6 +7911,33 @@ Crafty.defaultShader("Image", new Crafty.WebGLShader(
         );
     }
 ));
+
+Crafty.extend({
+    defaultImageShader: function(shader) {
+        if (arguments.length === 0 ){
+            if (this._defaultImageShader === undefined) {
+              this._defaultImageShader = new Crafty.WebGLShader(
+                IMAGE_VERTEX_SHADER,
+                IMAGE_FRAGMENT_SHADER,
+                IMAGE_ATTRIBUTE_LIST,
+                function(e) {
+                    var pos = e.pos;
+                    // Write texture coordinates
+                    e.program.writeVector("aTextureCoord",
+                        0, 0,
+                        0, pos._h,
+                        pos._w, 0,
+                        pos._w, pos._h
+                    );
+                }
+              );
+
+            }
+            return this._defaultImageShader;
+        }
+        this._defaultImageShader = shader;
+    }
+});
 
 /**@
  * #Image
@@ -10898,20 +10924,136 @@ var Crafty = require('../core/core.js');
  */
 
 Crafty.extend({
+    /**@
+     * #Crafty.WebGLShader
+     * @category Graphics
+     * @sign public Crafty.WebGLShader Crafty.WebGLShader(String vertexShaderCode, String fragmentShaderCode, Array attributeList, Function drawCallback(e, entity))
+     * @param vertexShaderCode - GLSL code for the vertex shader
+     * @param fragmentShaderCode - GLSL code for the fragment shader
+     * @param attributeList - List of variable names with their vertex length
+     * @param drawCallback - Function that pushes all attribute values to WebGL.
+     *
+     * Assigns or fetches a default shader for a component.
+     *
+     * This allows the default shader for a component to be overridden, and therefor allows
+     * developers to override the default shader behaviour with more complex shaders.
+     *
+     * @example
+     * Let's say we want to extend sprite to draw the images in grayscale when we
+     * set a `grayscale: true` attribute.
+     * ~~~
+     * var recoloredSprite = new Crafty.WebGLShader(
+     *   // The vertex shader
+     *   "attribute vec2 aPosition;\n" +
+     *   "attribute vec3 aOrientation;\n" +
+     *   "attribute vec2 aLayer;\n" +
+     *   "attribute vec2 aTextureCoord;\n" +
+     *   "attribute vec2 aGrayscale;\n" + // Addition of our grayscale
+     *   "varying mediump vec3 vTextureCoord;\n" +
+     *   "varying mediump vec2 vGrayscale;\n" + // passing attribute to fragment shader
+     *   "uniform vec4 uViewport;\n" +
+     *   "uniform mediump vec2 uTextureDimensions;\n" +
+     *   "mat4 viewportScale = mat4(2.0 / uViewport.z, 0, 0, 0,    0, -2.0 / uViewport.w, 0,0,    0, 0,1,0,    -1,+1,0,1);\n" +
+     *   "vec4 viewportTranslation = vec4(uViewport.xy, 0, 0);\n" +
+     *   "void main() {\n" +
+     *   "  vec2 pos = aPosition;\n" +
+     *   "  vec2 entityOrigin = aOrientation.xy;\n" +
+     *   "  mat2 entityRotationMatrix = mat2(cos(aOrientation.z), sin(aOrientation.z), -sin(aOrientation.z), cos(aOrientation.z));\n" +
+     *   "  pos = entityRotationMatrix * (pos - entityOrigin) + entityOrigin ;\n" +
+     *   "  gl_Position = viewportScale * (viewportTranslation + vec4(pos, 1.0/(1.0+exp(aLayer.x) ), 1) );\n" +
+     *   "  vTextureCoord = vec3(aTextureCoord, aLayer.y);\n" +
+     *   "  vGrayscale = aGrayscale;\n" + // Assigning the grayscale for fragment shader
+     *   "}",
+     *   // The fragment shader
+     *   "precision mediump float;\n" +
+     *   "varying mediump vec3 vTextureCoord;\n" +
+     *   "varying mediump vec2 vGrayscale;\n" +
+     *   "uniform sampler2D uSampler;\n " +
+     *   "uniform mediump vec2 uTextureDimensions;\n" +
+     *   "void main() {\n" +
+     *   "  highp vec2 coord =   vTextureCoord.xy / uTextureDimensions;\n" +
+     *   "  mediump vec4 base_color = texture2D(uSampler, coord);\n" +
+     *   "  if (vGrayscale.x == 1.0) {\n" +
+     *   "    mediump float lightness = (0.2126*base_color.r + 0.7152*base_color.g + 0.0722*base_color.b);\n" +
+     *   "    lightness *= base_color.a * vTextureCoord.z; // Premultiply alpha\n" +
+     *   "    gl_FragColor = vec4(lightness, lightness, lightness, base_color.a*vTextureCoord.z);\n" +
+     *   "  } else {\n" +
+     *   "    gl_FragColor = vec4(base_color.rgb*base_color.a*vTextureCoord.z, base_color.a*vTextureCoord.z);\n" +
+     *   "  }\n" +
+     *   "}",
+     *   [
+     *     { name: "aPosition",     width: 2 },
+     *     { name: "aOrientation",  width: 3 },
+     *     { name: "aLayer",        width: 2 },
+     *     { name: "aTextureCoord", width: 2 },
+     *     { name: "aGrayscale",    width: 2 }
+     *   ],
+     *   function(e, entity) {
+     *     var co = e.co;
+     *     // Write texture coordinates
+     *     e.program.writeVector("aTextureCoord",
+     *       co.x, co.y,
+     *       co.x, co.y + co.h,
+     *       co.x + co.w, co.y,
+     *       co.x + co.w, co.y + co.h
+     *     );
+     *     // Write our grayscale attribute
+     *     e.program.writeVector("aGrayscale",
+     *       entity.grayscale ? 1.0 : 0.0,
+     *       0.0
+     *     );
+     *   }
+     * );
+     * ~~~
+     *
+     * It seems like a lot of work, but most of the above code is the default Crafty shader code.
+     * When you get the hang of it, it is really easy to extend for your own effects. And remember
+     * you only need to write it once, and suddenly all sprite entities have extra effects available.
+     *
+     * @see Crafty.defaultShader
+     * @see Sprite
+     * @see Image
+     * @see Color
+     * @see WebGL
+     */
     WebGLShader: function(vertexCode, fragmentCode, attributeList, drawCallback){
         this.vertexCode = vertexCode;
         this.fragmentCode = fragmentCode;
         this.attributeList = attributeList;
         this.drawCallback = drawCallback;
     },
+    /**@
+     * #Crafty.defaultShader
+     * @category Graphics
+     * @sign public Crafty.WebGLShader Crafty.defaultShader(String component[, Crafty.WebGLShader shader])
+     * @param component - Name of the component to assign a default shader to
+     * @param shader - New default shader to assign to a component
+     *
+     * Assigns or fetches a default shader for a component.
+     *
+     * This allows the default shader for a component to be overridden, and therefor allows
+     * developers to override the default shader behaviour with more complex shaders.
+     *
+     * @example
+     * Let's say we want to set the grayscale enabled shader from the example of the WebGLShader
+     * as default for sprites:
+     * ~~~
+     * Crafty.defaultShader("Sprite", recoloredSprite);
+     * ~~~
+     *
+     * @see Crafty.WebGLShader
+     * @see Sprite
+     * @see Image
+     * @see Color
+     * @see WebGL
+     */
     defaultShader: function(component, shader) {
         this._defaultShaders = (this._defaultShaders || {});
         if (arguments.length === 1 ){
             return this._defaultShaders[component];
         }
         this._defaultShaders[component] = shader;
-    },
-
+    }
 });
 
 Crafty.c("WebGL", {
